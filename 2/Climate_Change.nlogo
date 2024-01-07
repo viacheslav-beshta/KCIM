@@ -4,8 +4,12 @@ globals [
   temperature  ;; overall temperature
   sun-angle 	 ;; angle of the sun 
   
-  min-sun-angle
-	max-sun-angle
+  
+  min-night-sun-angle
+  max-night-sun-angle
+  
+  min-day-sun-angle
+  max-day-sun-angle
 ]
 
 breed [rays ray]     ;; packets of sunlight
@@ -29,9 +33,14 @@ to setup
   set-default-shape CO2s "CO2-molecule"
   setup-world
   set temperature 12
-  set min-sun-angle -65
-  set max-sun-angle 65
-  set sun-angle min-sun-angle  ;; set your desired initial angle of the sun
+  
+  set min-night-sun-angle 66
+  set max-night-sun-angle 195
+  
+  set min-day-sun-angle -65
+  set max-day-sun-angle 65
+  
+  set sun-angle min-day-sun-angle  ;; set your desired initial angle of the sun
   create-initial-clouds ;; create initial amount of clouds
   reset-ticks
 end
@@ -72,15 +81,14 @@ to go
 end
 
 to update-sun-angle 
-  ifelse sun-angle > max-sun-angle
-  [set sun-angle min-sun-angle]
+  ifelse sun-angle > max-night-sun-angle
+  [set sun-angle min-day-sun-angle]
   [set sun-angle sun-angle + 1]
 end
 
 to update-albedo ;; patch procedure
   set pcolor scale-color green albedo 0 1
 end
-
 
 to create-initial-clouds         
   repeat initial-clouds [
@@ -135,15 +143,16 @@ to run-sunshine
     if not can-move? 0.3 [ die ]  ;; kill them off at the edge
     fd 0.3                        ;; otherwise keep moving
   ]
-  create-sunshine  ;; start new sun rays from top
+  if sun-angle > min-day-sun-angle and sun-angle < max-day-sun-angle
+  [create-sunshine]  ;; create new sun rays from top while day
   reflect-rays-from-clouds  ;; check for reflection off clouds
   encounter-earth   ;; check for reflection off earth and absorption
 end
 
-to create-sunshine ;; here
+to create-sunshine
   ;; don't necessarily create a ray each tick
   ;; as brightness gets higher make more
-  if 10 * sun-brightness > random 50 [
+  if 10 * sun-brightness > random 25 [
     create-rays 1 [
       set heading 160 + sun-angle  ;; angle of rays
       set color yellow
@@ -178,11 +187,11 @@ to run-heat    ;; advances the heat energy turtles
   ask heats
   [
     let dist 0.5 * random-float 1
-    ifelse can-move? dist
+    ifelse can-move? dist 
       [ fd dist ]
       [ set heading 180 - heading ] ;; if we're hitting the edge of the world, turn around
     if ycor >= earth-top [  ;; if heading back into sky
-      ifelse temperature > 20 + random 40
+      ifelse 10 > random 20
               ;; heats only seep out of the earth from a small area
               ;; this makes the model look nice but it also contributes
               ;; to the rate at which heat can be lost
@@ -238,10 +247,6 @@ to run-CO2
     fd dist ;; move forward a bit
   ]
 end
-
-
-; Copyright 2007 Uri Wilensky.
-; See Info tab for full copyright and license.
 @#$#@#$#@
 GRAPHICS-WINDOW
 317
